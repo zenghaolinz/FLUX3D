@@ -1,20 +1,20 @@
 # 3D Asset Generator
 
-FLUX.2 + Hunyuan3D text/image to 3D model pipeline.
+基于 FLUX.2 和 Hunyuan3D 的文本/图片生成 3D 模型工具。
 
-## Features
+## 功能
 
-- Text to 3D: Generate 3D models from text prompts
-- Image to 3D: Convert images to 3D models  
-- Dual Image Fusion: Merge two images with prompt
+- 文生 3D：根据文字描述生成 3D 模型
+- 图生 3D：上传图片直接生成 3D 模型（保留原图尺寸）
+- 双图融合：两张图片 + 提示词融合生成
 
-## Requirements
+## 环境要求
 
 - Python 3.10+
-- ComfyUI with FLUX.2 and Hunyuan3D nodes
-- NVIDIA GPU (CUDA)
+- ComfyUI（需安装 FLUX.2 和 Hunyuan3D 节点）
+- NVIDIA GPU
 
-## Installation
+## 安装
 
 ```bash
 python -m venv .venv
@@ -22,36 +22,41 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Usage
+## 使用
 
-1. Start ComfyUI first (port 8188)
-2. Run launcher:
+先启动 ComfyUI（端口 8188），然后运行：
 
 ```bash
 python launcher.py
 ```
 
-Or run GUI directly:
+或直接运行 GUI：
 
 ```bash
 .venv\Scripts\python frontend\gui.py
 ```
 
-## Workflow Files
+## 工作流文件
 
-Place workflow JSON files in `backend/`:
-- `文生图片生模型.json` - Text to 3D
-- `图片生模型.json` - Image to 3D
-- `双图生图生模型.json` - Dual Image Fusion
+放在 `backend/` 目录：
+- `文生图片生模型.json` - 文生 3D
+- `图片生模型.json` - 图生 3D
+- `双图生图生模型.json` - 双图融合
 
-## Config
+## 配置
 
-Edit `frontend/api_client.py` to change:
+修改 `frontend/api_client.py`：
 
 ```python
 SERVER = "127.0.0.1:8188"
 OUTPUT_DIR = r"E:\ComfyUI_windows_portable\ComfyUI\output"
 ```
+
+## 模型文件
+
+FLUX.2 GGUF 模型放在 ComfyUI 的 `models/unet/` 目录：
+- `flux-2-klein-4b-Q4_K_M.gguf` - 快速模式
+- `Flux-2-Klein-9B-KV-Q4_K_M.gguf` - 质量模式
 
 ## License
 

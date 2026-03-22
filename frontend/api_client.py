@@ -130,8 +130,19 @@ def run_pipeline(mode, quality, prompt, img1, img2=None, progress=None, intermed
     elif mode == "Image to 3D":
         if not img1:
             raise ValueError("Image required")
+        
+        from PIL import Image
+        with Image.open(img1) as im:
+            img_w, img_h = im.size
+        
         uploaded = upload_image(img1)
         wf["71"]["inputs"]["image"] = uploaded
+        
+        wf["24"]["inputs"]["width"] = img_w
+        wf["24"]["inputs"]["height"] = img_h
+        wf["25"]["inputs"]["width"] = img_w
+        wf["25"]["inputs"]["height"] = img_h
+        
         wf["18"]["inputs"]["filename_prefix"] = f"3D/{prefix}_White"
         wf["34"]["inputs"]["filename_prefix"] = f"3D/{prefix}_Textured"
         
