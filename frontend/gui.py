@@ -346,10 +346,43 @@ class MainWindow(QMainWindow):
         try:
             if not os.path.exists(path):
                 return
+            
+            import trimesh
+            import numpy as np
+            
             widget.clear()
             widget.add_axes()
-            mesh = pv.read(path)
-            widget.add_mesh(mesh)
+            
+            scene = trimesh.load(path, force='scene')
+            
+            if isinstance(scene, trimesh.Scene):
+                geometries = list(scene.geometry.values())
+                mesh = trimesh.util.concatenate(geometries) if geometries else None
+            else:
+                mesh = scene
+            
+            if not mesh or not hasattr(mesh, 'vertices'):
+                return
+            
+            pv_mesh = pv.wrap(mesh)
+            
+            texture = None
+            if isinstance(scene, trimesh.Scene):
+                for geom in scene.geometry.values():
+                    if hasattr(geom, 'visual') and hasattr(geom.visual, 'material'):
+                        mat = geom.visual.material
+                        if hasattr(mat, 'baseColorTexture') and mat.baseColorTexture is not None:
+                            img = mat.baseColorTexture
+                            if hasattr(img, 'convert'):
+                                img = img.convert('RGB')
+                                texture = pv.numpy_to_texture(np.array(img))
+                                break
+            
+            if texture:
+                widget.add_mesh(pv_mesh, texture=texture)
+            else:
+                widget.add_mesh(pv_mesh)
+            
             widget.reset_camera()
         except:
             pass
