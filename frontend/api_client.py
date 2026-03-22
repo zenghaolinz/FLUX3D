@@ -61,7 +61,6 @@ def get_history(pid):
 
 
 def find_file(prefix, subfolder=""):
-    """Find latest file by prefix in output dir"""
     search_dir = os.path.join(OUTPUT_DIR, subfolder) if subfolder else OUTPUT_DIR
     if not os.path.exists(search_dir):
         return None
@@ -71,7 +70,6 @@ def find_file(prefix, subfolder=""):
 
 
 def extract_file(history, node_id):
-    """Extract file from ComfyUI history output"""
     if node_id not in history.get('outputs', {}):
         return None
     
@@ -104,7 +102,6 @@ def run_pipeline(mode, quality, prompt, img1, img2=None, progress=None, intermed
     
     flux_model = FLUX_QUALITY if quality == "quality" else FLUX_FAST
     
-    # Load workflow
     if mode not in WORKFLOWS:
         raise ValueError(f"Unknown mode: {mode}")
     
@@ -114,7 +111,6 @@ def run_pipeline(mode, quality, prompt, img1, img2=None, progress=None, intermed
     if progress:
         progress(0.05, "Loading workflow...")
     
-    # Inject parameters based on mode
     if mode == "Text to 3D":
         if not prompt:
             raise ValueError("Prompt required")
@@ -125,7 +121,6 @@ def run_pipeline(mode, quality, prompt, img1, img2=None, progress=None, intermed
         wf["18"]["inputs"]["filename_prefix"] = f"3D/{prefix}_White"
         wf["34"]["inputs"]["filename_prefix"] = f"3D/{prefix}_Textured"
         
-        # Add intermediate save nodes
         wf["998"] = {"class_type": "SaveImage", "inputs": {"filename_prefix": f"{prefix}_RemBG", "images": ["1", 0]}}
         wf["997"] = {"class_type": "SaveImage", "inputs": {"filename_prefix": f"{prefix}_Normal", "images": ["42", 0]}}
         wf["996"] = {"class_type": "SaveImage", "inputs": {"filename_prefix": f"{prefix}_Texture", "images": ["35", 0]}}
@@ -212,7 +207,6 @@ def run_pipeline(mode, quality, prompt, img1, img2=None, progress=None, intermed
                             fpath = find_file(f"{prefix}_Textured", "3D")
                     
                     if fpath and os.path.exists(fpath):
-                        print(f"[intermediate] {nid}: {fpath}")
                         intermediate_callback(node_map[nid], fpath)
                 
                 if d.get('node') is None and d.get('prompt_id') == pid:
@@ -231,12 +225,6 @@ def run_pipeline(mode, quality, prompt, img1, img2=None, progress=None, intermed
     # Fallback for Image to 3D mode
     if mode == "Image to 3D":
         result_2d = img1
-    
-    print(f"\nResults:")
-    print(f"  2D: {result_2d}")
-    print(f"  Normal: {result_normal}")
-    print(f"  UV: {result_uv}")
-    print(f"  Model: {result_model}")
     
     return result_2d, result_normal, result_uv, result_model
 

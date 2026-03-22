@@ -344,31 +344,15 @@ class MainWindow(QMainWindow):
     
     def _load_model(self, widget, path):
         try:
-            import trimesh
-            import numpy as np
-            
             if not os.path.exists(path):
                 return
-            
             widget.clear()
             widget.add_axes()
-            
-            mesh = trimesh.load(path, force='scene')
-            
-            if isinstance(mesh, trimesh.Scene):
-                geometries = []
-                for g in mesh.geometry.values():
-                    geometries.append(g)
-                if geometries:
-                    mesh = trimesh.util.concatenate(geometries)
-            
-            if hasattr(mesh, 'vertices') and hasattr(mesh, 'faces'):
-                pv_mesh = pv.wrap(mesh)
-                widget.add_mesh(pv_mesh, color="lightgray")
-                widget.reset_camera()
-        
-        except Exception as e:
-            print(f"Load model error: {e}")
+            mesh = pv.read(path)
+            widget.add_mesh(mesh)
+            widget.reset_camera()
+        except:
+            pass
     
     def _show_log(self):
         LogWindow(self).show()
