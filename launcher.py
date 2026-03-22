@@ -91,11 +91,20 @@ def start_gui():
         return
     
     try:
-        subprocess.run([GUI_SCRIPT] + GUI_ARGS, cwd=os.path.dirname(__file__))
+        result = subprocess.run(
+            [GUI_SCRIPT] + GUI_ARGS, 
+            cwd=os.path.dirname(__file__),
+            capture_output=False
+        )
+        if result.returncode != 0:
+            print(f"[ERROR] GUI 退出码：{result.returncode}")
+            input("按任意键退出...")
     except KeyboardInterrupt:
         print("\n[INFO] 用户中断")
     except Exception as e:
         print(f"[ERROR] GUI 启动失败：{e}")
+        import traceback
+        traceback.print_exc()
         input("按任意键退出...")
 
 

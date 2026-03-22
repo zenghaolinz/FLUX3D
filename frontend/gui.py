@@ -404,10 +404,17 @@ class LogWindow(QMainWindow):
 
 
 def main():
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")
-    MainWindow().show()
-    sys.exit(app.exec())
+    try:
+        app = QApplication(sys.argv)
+        app.setStyle("Fusion")
+        window = MainWindow()
+        window.show()
+        sys.exit(app.exec())
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"\n[Error] {e}")
+        input("Press Enter to exit...")
 
 
 if __name__ == "__main__":
