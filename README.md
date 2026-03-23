@@ -24,7 +24,7 @@ pip install -r requirements.txt
 
 ## 使用
 
-先启动 ComfyUI（端口 8188），然后运行：
+先启动 后端（端口 8188），然后运行：
 
 ```bash
 python launcher.py
@@ -35,13 +35,6 @@ python launcher.py
 ```bash
 .venv\Scripts\python frontend\gui.py
 ```
-
-## 工作流文件
-
-放在 `backend/` 目录：
-- `文生图片生模型.json` - 文生 3D
-- `图片生模型.json` - 图生 3D
-- `双图生图生模型.json` - 双图融合
 
 ## 配置
 
@@ -54,7 +47,8 @@ OUTPUT_DIR = r"E:\ComfyUI_windows_portable\ComfyUI\output"
 
 ## 模型文件
 
-FLUX.2 GGUF 模型放在 ComfyUI 的 `models/unet/` 目录：
+FLUX.2 GGUF 模型放在  `models/unet/` 目录：
+
 - `flux-2-klein-4b-Q4_K_M.gguf` - 快速模式
 - `Flux-2-Klein-9B-KV-Q4_K_M.gguf` - 质量模式
 

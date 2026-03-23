@@ -4,3 +4,12 @@ __pycache__/
 .idea/
 *.log
 gradio_temp/
+
+# Large directories
+backend/ComfyUI/
+backend/python_embeded/
+backend/__pycache__/
+
+# Temporary files
+*.tmp
+*.bak
