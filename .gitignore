@@ -10,6 +10,18 @@ backend/ComfyUI/
 backend/python_embeded/
 backend/__pycache__/
 
+# Installer build files
+installer/AI3DModeling_Final_Setup.zip
+installer/dist/
+installer/final/
+installer/build/
+build/
+*.spec
+
 # Temporary files
 *.tmp
 *.bak
+nul
+
+# Demo outputs
+demo/**/*.glb
