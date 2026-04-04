@@ -22,12 +22,11 @@ from PyQt6.QtWidgets import (
     QDialog,
     QLineEdit,
     QGroupBox,
-    QScrollArea,
     QSizePolicy,
 )
 import configparser
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize
-from PyQt6.QtGui import QPixmap, QFont, QIcon
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QPixmap, QIcon
 
 import pyvista as pv
 from pyvistaqt import QtInteractor
@@ -36,19 +35,18 @@ from api_client import run_comfyui_pipeline
 from agent_core import run_smart_agent
 
 # ==========================================
-# 资源路径配置
+# Resource Configuration
 # ==========================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ICONS_DIR = os.path.join(BASE_DIR, "assets", "icons")
 
 
 def get_icon(filename):
-    """辅助函数：获取图标路径"""
     return os.path.join(ICONS_DIR, filename)
 
 
 # ==========================================
-# 专业深色生产力主题 (Professional Dark Theme)
+# Professional Dark Theme
 # ==========================================
 STYLESHEET = """
 QMainWindow, QDialog {
@@ -81,7 +79,7 @@ QGroupBox::title {
 }
 QRadioButton {
     font-size: 12px;
-    padding: 2px;
+    padding: 4px 2px;
     color: #cccccc;
 }
 QRadioButton::indicator {
@@ -115,7 +113,6 @@ QPushButton:disabled {
     color: #555555;
     border: 1px solid #333333;
 }
-/* 主行动按钮样式 */
 QPushButton#primaryAction {
     background-color: #0e639c;
     color: #ffffff;
@@ -124,7 +121,6 @@ QPushButton#primaryAction {
 }
 QPushButton#primaryAction:hover { background-color: #1177bb; }
 QPushButton#primaryAction:disabled { background-color: #4d4d4f; color: #888888; }
-
 QTextEdit, QLineEdit {
     border: 1px solid #3c3c3c;
     border-radius: 3px;
@@ -170,10 +166,6 @@ QScrollBar::handle:vertical {
 }
 QScrollBar::handle:vertical:hover {
     background: #4f4f4f;
-}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-    border: none;
-    background: none;
 }
 """
 
@@ -319,15 +311,16 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 4, 0)
         layout.setSpacing(8)
 
+        # 1. Pipeline Mode Group (Unified)
         mode_group = QGroupBox("Pipeline Mode")
         mode_layout = QVBoxLayout(mode_group)
-        mode_layout.setSpacing(6)
+        mode_layout.setSpacing(8)
 
         self.mode_group = QButtonGroup()
-        self.rb_smart = QRadioButton("Auto-Compute")
-        self.rb_text2img = QRadioButton("Text to 3D")
-        self.rb_img2model = QRadioButton("Image to 3D")
-        self.rb_dual = QRadioButton("Dual Fusion")
+        self.rb_smart = QRadioButton("Auto-Compute (API)")
+        self.rb_text2img = QRadioButton("Text -> Image -> 3D (Local)")
+        self.rb_img2model = QRadioButton("Image -> 3D (Local)")
+        self.rb_dual = QRadioButton("Dual Fusion (Local)")
         self.rb_smart.setChecked(True)
 
         for rb in [self.rb_smart, self.rb_text2img, self.rb_img2model, self.rb_dual]:
@@ -337,20 +330,7 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(mode_group)
 
-        api_group = QGroupBox("Compute Engine")
-        api_layout = QVBoxLayout(api_group)
-        self.api_mode_group = QButtonGroup()
-        self.rb_api_on = QRadioButton("Cloud (API)")
-        self.rb_api_off = QRadioButton("Local Server")
-        self.rb_api_on.setChecked(True)
-        self.api_mode_group.addButton(self.rb_api_on)
-        self.api_mode_group.addButton(self.rb_api_off)
-        api_layout.addWidget(self.rb_api_on)
-        api_layout.addWidget(self.rb_api_off)
-        self.rb_api_on.toggled.connect(self._update_visibility)
-        self.rb_api_off.toggled.connect(self._update_visibility)
-        layout.addWidget(api_group)
-
+        # 2. Quality Group
         quality_group = QGroupBox("Render Quality")
         quality_layout = QHBoxLayout(quality_group)
         self.quality_group = QButtonGroup()
@@ -363,15 +343,14 @@ class MainWindow(QMainWindow):
         quality_layout.addWidget(self.rb_quality)
         layout.addWidget(quality_group)
 
-        input_group = QGroupBox("Inputs")
-        input_layout = QVBoxLayout(input_group)
+        # 3. Traditional Inputs Group
+        self.input_group = QGroupBox("Local Pipeline Inputs")
+        input_layout = QVBoxLayout(self.input_group)
         input_layout.setSpacing(8)
 
-        placeholder_style = """
-            border: 1px dashed #555555;
-            background-color: #1e1e1e;
-            color: #888888;
-        """
+        placeholder_style = (
+            "border: 1px dashed #555555; background-color: #1e1e1e; color: #888888;"
+        )
 
         self.lbl_img1 = QLabel("Base Image")
         self.img1_preview = QLabel("Click to load image")
@@ -398,10 +377,11 @@ class MainWindow(QMainWindow):
         input_layout.addWidget(self.lbl_prompt)
         input_layout.addWidget(self.prompt_input)
 
-        layout.addWidget(input_group)
+        layout.addWidget(self.input_group)
 
-        status_group = QGroupBox("Process")
-        status_layout = QVBoxLayout(status_group)
+        # 4. Traditional Status Group
+        self.status_group = QGroupBox("Process")
+        status_layout = QVBoxLayout(self.status_group)
         self.progress = QProgressBar()
         self.progress.setMinimumHeight(12)
         self.progress.setTextVisible(False)
@@ -409,9 +389,10 @@ class MainWindow(QMainWindow):
         self.status = QLabel("Idle")
         self.status.setStyleSheet("color: #999999;")
         status_layout.addWidget(self.status)
-        layout.addWidget(status_group)
+        layout.addWidget(self.status_group)
 
-        self.btn_gen = QPushButton(" Execute Pipeline")
+        # 5. Traditional Execute Button
+        self.btn_gen = QPushButton(" Execute Local Pipeline")
         self.btn_gen.setObjectName("primaryAction")
         self.btn_gen.setIcon(QIcon(get_icon("play.png")))
         self.btn_gen.setMinimumHeight(36)
@@ -496,8 +477,8 @@ class MainWindow(QMainWindow):
         return container
 
     def _create_right_panel(self):
-        panel = QFrame()
-        layout = QVBoxLayout(panel)
+        self.right_panel = QFrame()
+        layout = QVBoxLayout(self.right_panel)
         layout.setContentsMargins(4, 0, 0, 0)
         layout.setSpacing(8)
 
@@ -513,7 +494,7 @@ class MainWindow(QMainWindow):
         ai_layout.addWidget(self.qwen_response)
         layout.addWidget(ai_group)
 
-        smart_group = QGroupBox("Source Asset")
+        smart_group = QGroupBox("API Source Asset")
         smart_layout = QVBoxLayout(smart_group)
 
         self.lbl_smart_img = QLabel("Input Image")
@@ -522,11 +503,9 @@ class MainWindow(QMainWindow):
         self.smart_img_preview = QLabel("Click to load image")
         self.smart_img_preview.setMinimumHeight(120)
         self.smart_img_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.smart_img_preview.setStyleSheet("""
-            border: 1px dashed #555555;
-            background-color: #1e1e1e;
-            color: #888888;
-        """)
+        self.smart_img_preview.setStyleSheet(
+            "border: 1px dashed #555555; background-color: #1e1e1e; color: #888888;"
+        )
         self.smart_img_preview.mousePressEvent = lambda e: self._select_smart_img()
         smart_layout.addWidget(self.smart_img_preview)
 
@@ -550,7 +529,7 @@ class MainWindow(QMainWindow):
         status_layout.addWidget(self.ai_status)
         layout.addWidget(status_group)
 
-        self.btn_smart_gen = QPushButton(" Compute")
+        self.btn_smart_gen = QPushButton(" Compute via API")
         self.btn_smart_gen.setObjectName("primaryAction")
         self.btn_smart_gen.setIcon(QIcon(get_icon("play.png")))
         self.btn_smart_gen.setMinimumHeight(36)
@@ -558,60 +537,39 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.btn_smart_gen)
 
         layout.addStretch()
-        return panel
+        return self.right_panel
 
     def _update_visibility(self):
-        mode, _, _ = self._get_mode()
-        is_smart = self.rb_smart.isChecked()
-        use_api = self.rb_api_on.isChecked()
+        mode = self._get_mode()
+        is_smart = mode == "Smart"
 
-        self.qwen_response.parent().parent().setVisible(is_smart and use_api)
-        self.smart_img_preview.parent().parent().setVisible(is_smart and use_api)
-        self.ai_progress.parent().parent().setVisible(is_smart and use_api)
-        self.btn_smart_gen.setVisible(is_smart and use_api)
+        # Toggle Panel visibility entirely for clarity
+        self.right_panel.setVisible(is_smart)
 
-        show_prompt = "Image to 3D" not in mode and not is_smart
-        show_img1 = ("Image to 3D" in mode or "Dual" in mode) or (
-            is_smart and not use_api
-        )
-        show_img2 = "Dual" in mode
+        self.input_group.setVisible(not is_smart)
+        self.status_group.setVisible(not is_smart)
+        self.btn_gen.setVisible(not is_smart)
 
-        self.lbl_prompt.setVisible(show_prompt)
-        self.prompt_input.setVisible(show_prompt)
-        self.lbl_img1.setVisible(show_img1)
-        self.img1_preview.setVisible(show_img1)
-        self.lbl_img2.setVisible(show_img2)
-        self.img2_preview.setVisible(show_img2)
+        if not is_smart:
+            show_prompt = mode in ["Text to 3D", "Dual Image Fusion"]
+            show_img1 = mode in ["Image to 3D", "Dual Image Fusion"]
+            show_img2 = mode == "Dual Image Fusion"
 
-        show_classic_controls = not is_smart or not use_api
-        self.progress.parent().parent().setVisible(show_classic_controls)
-        self.status.parent().parent().setVisible(show_classic_controls)
-        self.btn_gen.setVisible(show_classic_controls)
+            self.lbl_prompt.setVisible(show_prompt)
+            self.prompt_input.setVisible(show_prompt)
+            self.lbl_img1.setVisible(show_img1)
+            self.img1_preview.setVisible(show_img1)
+            self.lbl_img2.setVisible(show_img2)
+            self.img2_preview.setVisible(show_img2)
 
     def _get_mode(self):
         if self.rb_smart.isChecked():
-            return (
-                "Smart",
-                ("quality" if self.rb_quality.isChecked() else "fast"),
-                self.rb_api_on.isChecked(),
-            )
+            return "Smart"
         if self.rb_text2img.isChecked():
-            return (
-                "Text to 3D",
-                ("quality" if self.rb_quality.isChecked() else "fast"),
-                self.rb_api_on.isChecked(),
-            )
+            return "Text to 3D"
         if self.rb_img2model.isChecked():
-            return (
-                "Image to 3D",
-                ("quality" if self.rb_quality.isChecked() else "fast"),
-                self.rb_api_on.isChecked(),
-            )
-        return (
-            "Dual Image Fusion",
-            ("quality" if self.rb_quality.isChecked() else "fast"),
-            self.rb_api_on.isChecked(),
-        )
+            return "Image to 3D"
+        return "Dual Image Fusion"
 
     def _select_img1(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -665,9 +623,13 @@ class MainWindow(QMainWindow):
             self.smart_img_preview.setPixmap(px)
 
     def _generate(self):
-        mode, quality, use_api = self._get_mode()
+        mode = self._get_mode()
+        quality = "quality" if self.rb_quality.isChecked() else "fast"
 
-        if mode == "Smart" and use_api:
+        # ----------------------
+        # Smart Agent API Mode
+        # ----------------------
+        if mode == "Smart":
             if not self.smart_img_path:
                 QMessageBox.warning(self, "Warning", "Source image is required.")
                 return
@@ -688,14 +650,18 @@ class MainWindow(QMainWindow):
             self.smart_worker.start()
             return
 
+        # ----------------------
+        # Traditional Local Mode
+        # ----------------------
         prompt = self.prompt_input.toPlainText().strip()
-        if "Text to 3D" in mode and not prompt:
+
+        if mode == "Text to 3D" and not prompt:
             QMessageBox.warning(self, "Warning", "Text prompt is required.")
             return
-        if "Image to 3D" in mode and not self.img1_path:
+        if mode == "Image to 3D" and not self.img1_path:
             QMessageBox.warning(self, "Warning", "Base image is required.")
             return
-        if "Dual" in mode:
+        if mode == "Dual Image Fusion":
             if not prompt:
                 QMessageBox.warning(self, "Warning", "Text prompt is required.")
                 return
@@ -704,19 +670,13 @@ class MainWindow(QMainWindow):
                     self, "Warning", "Both base and reference images are required."
                 )
                 return
-        if mode == "Smart" and not use_api and not self.img1_path:
-            QMessageBox.warning(self, "Warning", "Base image is required.")
-            return
 
         self.btn_gen.setEnabled(False)
         self.btn_gen.setText(" Executing...")
         self.progress.setValue(0)
-        self.status.setText("Initializing pipeline...")
+        self.status.setText(f"Initializing {mode} pipeline...")
 
-        actual_mode = "Image to 3D" if mode == "Smart" else mode
-        self.worker = Worker(
-            actual_mode, quality, prompt, self.img1_path, self.img2_path
-        )
+        self.worker = Worker(mode, quality, prompt, self.img1_path, self.img2_path)
         self.worker.progress.connect(self._on_progress)
         self.worker.intermediate.connect(self._on_intermediate)
         self.worker.done.connect(self._on_done)
@@ -799,7 +759,7 @@ class MainWindow(QMainWindow):
 
     def _on_done(self, img2d, normal, uv, model):
         self.btn_gen.setEnabled(True)
-        self.btn_gen.setText(" Execute Pipeline")
+        self.btn_gen.setText(" Execute Local Pipeline")
         self.status.setText("Process Completed")
         if img2d and os.path.exists(img2d):
             self._update_preview_image(self.preview_2d, img2d)
@@ -812,7 +772,7 @@ class MainWindow(QMainWindow):
 
     def _on_smart_done(self, model_path):
         self.btn_smart_gen.setEnabled(True)
-        self.btn_smart_gen.setText(" Compute")
+        self.btn_smart_gen.setText(" Compute via API")
         self.ai_progress.setValue(100)
         self.ai_status.setText("Process Completed")
         if model_path and os.path.exists(model_path):
@@ -820,7 +780,7 @@ class MainWindow(QMainWindow):
 
     def _on_error(self, msg):
         self.btn_gen.setEnabled(True)
-        self.btn_gen.setText(" Execute Pipeline")
+        self.btn_gen.setText(" Execute Local Pipeline")
         self.progress.setValue(0)
         self.status.setText("Process Failed")
         self.status.setStyleSheet("color: #f44336;")
@@ -828,7 +788,7 @@ class MainWindow(QMainWindow):
 
     def _on_ai_error(self, msg):
         self.btn_smart_gen.setEnabled(True)
-        self.btn_smart_gen.setText(" Compute")
+        self.btn_smart_gen.setText(" Compute via API")
         self.ai_progress.setValue(0)
         self.ai_status.setText("Process Failed")
         self.ai_status.setStyleSheet("color: #f44336;")
@@ -962,7 +922,6 @@ class LogWindow(QMainWindow):
             "font-family: Consolas, monospace; font-size: 12px; background-color: #1e1e1e; border: none;"
         )
         self.setCentralWidget(self.log_text)
-
         self._refresh()
 
     def _refresh(self):
