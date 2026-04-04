@@ -22,16 +22,105 @@ from PyQt6.QtWidgets import (
     QDialog,
     QLineEdit,
     QGroupBox,
+    QScrollArea,
+    QSizePolicy,
 )
 import configparser
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QFont
 
 import pyvista as pv
 from pyvistaqt import QtInteractor
 
 from api_client import run_comfyui_pipeline
 from agent_core import run_smart_agent
+
+
+STYLESHEET = """
+QMainWindow {
+    background-color: #f5f7fa;
+}
+QGroupBox {
+    font-weight: bold;
+    font-size: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-top: 12px;
+    padding-top: 8px;
+    background-color: #ffffff;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 12px;
+    padding: 0 8px;
+    color: #4a5568;
+}
+QRadioButton {
+    font-size: 12px;
+    padding: 4px;
+    spacing: 8px;
+}
+QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+}
+QPushButton {
+    font-size: 12px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background-color: #ffffff;
+}
+QPushButton:hover {
+    background-color: #f7fafc;
+    border-color: #cbd5e0;
+}
+QPushButton:disabled {
+    background-color: #edf2f7;
+    color: #a0aec0;
+}
+QTextEdit {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 12px;
+    background-color: #ffffff;
+}
+QTextEdit:focus {
+    border-color: #3182ce;
+}
+QLineEdit {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 12px;
+    background-color: #ffffff;
+}
+QLineEdit:focus {
+    border-color: #3182ce;
+}
+QProgressBar {
+    border: none;
+    border-radius: 4px;
+    background-color: #e2e8f0;
+    text-align: center;
+    font-size: 11px;
+    font-weight: bold;
+    color: #4a5568;
+}
+QProgressBar::chunk {
+    border-radius: 4px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3182ce, stop:1 #63b3ed);
+}
+QLabel {
+    font-size: 12px;
+    color: #4a5568;
+}
+QScrollArea {
+    border: none;
+    background-color: transparent;
+}
+"""
 
 
 class SmartWorker(QThread):
@@ -103,8 +192,9 @@ class Worker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("3D Asset Generator")
-        self.setMinimumSize(1400, 900)
+        self.setWindowTitle("3D Asset Generator v3.0")
+        self.setMinimumSize(1500, 900)
+        self.setStyleSheet(STYLESHEET)
 
         self.img1_path = None
         self.img2_path = None
@@ -116,224 +206,374 @@ class MainWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        # Header
-        header = QLabel("3D Asset Generator")
-        header.setStyleSheet("font-size: 20px; font-weight: bold; padding: 4px;")
+        header = self._create_header()
+        layout.addWidget(header)
 
-        header_layout = QHBoxLayout()
-        header_layout.addWidget(header)
+        main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        layout.addWidget(main_splitter)
+
+        left_panel = self._create_left_panel()
+        main_splitter.addWidget(left_panel)
+
+        center_panel = self._create_center_panel()
+        main_splitter.addWidget(center_panel)
+
+        right_panel = self._create_right_panel()
+        main_splitter.addWidget(right_panel)
+
+        main_splitter.setStretchFactor(0, 1)
+        main_splitter.setStretchFactor(1, 2)
+        main_splitter.setStretchFactor(2, 1)
+
+        self._update_visibility()
+
+    def _create_header(self):
+        header = QFrame()
+        header.setStyleSheet("background-color: #2d3748; padding: 8px;")
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(16, 8, 16, 8)
+
+        title = QLabel("3D Asset Generator")
+        title.setStyleSheet(
+            "font-size: 18px; font-weight: bold; color: #ffffff; background: transparent;"
+        )
+        header_layout.addWidget(title)
+
+        version = QLabel("v3.0")
+        version.setStyleSheet(
+            "font-size: 12px; color: #a0aec0; background: transparent;"
+        )
+        header_layout.addWidget(version)
         header_layout.addStretch()
 
         self.btn_settings = QPushButton("⚙ Settings")
+        self.btn_settings.setStyleSheet("""
+            QPushButton {
+                background-color: #4a5568;
+                color: #ffffff;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #718096;
+            }
+        """)
         self.btn_settings.clicked.connect(self._show_settings)
         header_layout.addWidget(self.btn_settings)
 
-        layout.addLayout(header_layout)
+        self.btn_log = QPushButton("📋 Log")
+        self.btn_log.setStyleSheet("""
+            QPushButton {
+                background-color: #4a5568;
+                color: #ffffff;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #718096;
+            }
+        """)
+        self.btn_log.clicked.connect(self._show_log)
+        header_layout.addWidget(self.btn_log)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        layout.addWidget(splitter)
+        return header
 
-        # Left panel
-        left = QFrame()
-        left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(8, 8, 8, 8)
-        left_layout.setSpacing(8)
+    def _create_left_panel(self):
+        panel = QFrame()
+        panel.setStyleSheet("background-color: #f5f7fa;")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(12)
 
-        # Mode selection
-        left_layout.addWidget(QLabel("Mode"))
+        mode_group = QGroupBox("Mode")
+        mode_layout = QVBoxLayout(mode_group)
+        mode_layout.setSpacing(4)
+
         self.mode_group = QButtonGroup()
         self.rb_smart = QRadioButton("🤖 Smart Mode")
-        self.rb_text2img = QRadioButton("Text to 3D")
-        self.rb_img2model = QRadioButton("Image to 3D")
-        self.rb_dual = QRadioButton("Dual Image Fusion")
+        self.rb_text2img = QRadioButton("📝 Text to 3D")
+        self.rb_img2model = QRadioButton("🖼️ Image to 3D")
+        self.rb_dual = QRadioButton("🔀 Dual Image Fusion")
         self.rb_smart.setChecked(True)
 
         for rb in [self.rb_smart, self.rb_text2img, self.rb_img2model, self.rb_dual]:
             self.mode_group.addButton(rb)
-            left_layout.addWidget(rb)
+            mode_layout.addWidget(rb)
             rb.toggled.connect(self._update_visibility)
 
-        # Quality
-        left_layout.addWidget(QLabel("Quality"))
+        layout.addWidget(mode_group)
+
+        quality_group = QGroupBox("Quality")
+        quality_layout = QHBoxLayout(quality_group)
         self.quality_group = QButtonGroup()
-        self.rb_fast = QRadioButton("Fast (4B)")
-        self.rb_quality = QRadioButton("Quality (9B)")
+        self.rb_fast = QRadioButton("⚡ Fast (4B)")
+        self.rb_quality = QRadioButton("🎯 Quality (9B)")
         self.rb_fast.setChecked(True)
         self.quality_group.addButton(self.rb_fast)
         self.quality_group.addButton(self.rb_quality)
-        left_layout.addWidget(self.rb_fast)
-        left_layout.addWidget(self.rb_quality)
+        quality_layout.addWidget(self.rb_fast)
+        quality_layout.addWidget(self.rb_quality)
+        layout.addWidget(quality_group)
 
-        # Smart Mode - Natural Language Input
-        self.lbl_smart_input = QLabel("🧠 Natural Language (Optional)")
-        left_layout.addWidget(self.lbl_smart_input)
-        self.smart_input = QTextEdit()
-        self.smart_input.setPlaceholderText(
-            "可不输入，AI将自动分析图片质量\n输入需求如: 把材质改成金属, add more details"
-        )
-        self.smart_input.setMaximumHeight(60)
-        left_layout.addWidget(self.smart_input)
+        input_group = QGroupBox("Input")
+        input_layout = QVBoxLayout(input_group)
+        input_layout.setSpacing(8)
 
-        # Smart Mode - Image
-        self.lbl_smart_img = QLabel("📷 Image")
-        left_layout.addWidget(self.lbl_smart_img)
-        self.smart_img_preview = QLabel("Click to select")
-        self.smart_img_preview.setMinimumHeight(120)
-        self.smart_img_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.smart_img_preview.setStyleSheet(
-            "border: 1px dashed #ccc; background: #fafafa;"
-        )
-        left_layout.addWidget(self.smart_img_preview)
-        self.btn_smart_img = QPushButton("Select Image...")
-        self.btn_smart_img.clicked.connect(self._select_smart_img)
-        left_layout.addWidget(self.btn_smart_img)
+        self.lbl_img1 = QLabel("Image 1")
+        self.img1_preview = QLabel("Click to select")
+        self.img1_preview.setMinimumHeight(100)
+        self.img1_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.img1_preview.setStyleSheet("""
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            background-color: #edf2f7;
+            font-size: 12px;
+            color: #718096;
+        """)
+        self.img1_preview.mousePressEvent = lambda e: self._select_img1()
+        input_layout.addWidget(self.lbl_img1)
+        input_layout.addWidget(self.img1_preview)
 
-        # Smart Mode - Qwen Response Panel
-        self.lbl_qwen = QLabel("🤖 AI Analysis")
-        left_layout.addWidget(self.lbl_qwen)
-        self.qwen_response = QTextEdit()
-        self.qwen_response.setReadOnly(True)
-        self.qwen_response.setMaximumHeight(150)
-        self.qwen_response.setStyleSheet(
-            "border: 1px solid #ddd; background: #f5f5f5; font-size: 11px;"
-        )
-        self.qwen_response.setPlaceholderText("AI analysis results will appear here...")
-        left_layout.addWidget(self.qwen_response)
+        self.lbl_img2 = QLabel("Image 2")
+        self.img2_preview = QLabel("Click to select")
+        self.img2_preview.setMinimumHeight(100)
+        self.img2_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.img2_preview.setStyleSheet("""
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            background-color: #edf2f7;
+            font-size: 12px;
+            color: #718096;
+        """)
+        self.img2_preview.mousePressEvent = lambda e: self._select_img2()
+        input_layout.addWidget(self.lbl_img2)
+        input_layout.addWidget(self.img2_preview)
 
-        # Prompt
         self.lbl_prompt = QLabel("Prompt")
-        left_layout.addWidget(self.lbl_prompt)
         self.prompt_input = QTextEdit()
         self.prompt_input.setPlaceholderText(
             "A mechanical watch gear, brass material, close-up view"
         )
         self.prompt_input.setMaximumHeight(80)
-        left_layout.addWidget(self.prompt_input)
+        input_layout.addWidget(self.lbl_prompt)
+        input_layout.addWidget(self.prompt_input)
 
-        # Image 1
-        self.lbl_img1 = QLabel("Image 1")
-        left_layout.addWidget(self.lbl_img1)
-        self.img1_preview = QLabel("Click to select")
-        self.img1_preview.setMinimumHeight(100)
-        self.img1_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.img1_preview.setStyleSheet("border: 1px dashed #ccc; background: #fafafa;")
-        left_layout.addWidget(self.img1_preview)
-        self.btn_img1 = QPushButton("Select...")
-        self.btn_img1.clicked.connect(self._select_img1)
-        left_layout.addWidget(self.btn_img1)
+        layout.addWidget(input_group)
 
-        # Image 2
-        self.lbl_img2 = QLabel("Image 2")
-        left_layout.addWidget(self.lbl_img2)
-        self.img2_preview = QLabel("Click to select")
-        self.img2_preview.setMinimumHeight(100)
-        self.img2_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.img2_preview.setStyleSheet("border: 1px dashed #ccc; background: #fafafa;")
-        left_layout.addWidget(self.img2_preview)
-        self.btn_img2 = QPushButton("Select...")
-        self.btn_img2.clicked.connect(self._select_img2)
-        left_layout.addWidget(self.btn_img2)
+        status_group = QGroupBox("Status")
+        status_layout = QVBoxLayout(status_group)
 
-        # Generate button
-        self.btn_gen = QPushButton("Generate")
-        self.btn_gen.setMinimumHeight(40)
-        self.btn_gen.setStyleSheet("""
-            QPushButton { background: #3182ce; color: white; font-size: 14px; font-weight: bold; border-radius: 4px; }
-            QPushButton:hover { background: #2c5282; }
-            QPushButton:disabled { background: #a0aec0; }
-        """)
-        self.btn_gen.clicked.connect(self._generate)
-        left_layout.addWidget(self.btn_gen)
-
-        # Progress
         self.progress = QProgressBar()
-        self.progress.setMaximumHeight(20)
-        left_layout.addWidget(self.progress)
+        self.progress.setMinimumHeight(24)
+        status_layout.addWidget(self.progress)
 
         self.status = QLabel("Ready")
-        self.status.setStyleSheet("color: #666; font-size: 11px;")
-        left_layout.addWidget(self.status)
+        self.status.setStyleSheet("font-size: 11px; color: #718096;")
+        status_layout.addWidget(self.status)
 
-        # Log button
-        self.btn_log = QPushButton("Log")
-        self.btn_log.clicked.connect(self._show_log)
-        left_layout.addWidget(self.btn_log)
+        layout.addWidget(status_group)
 
-        left_layout.addStretch()
-        splitter.addWidget(left)
+        self.btn_gen = QPushButton("🚀 Generate")
+        self.btn_gen.setMinimumHeight(48)
+        self.btn_gen.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3182ce, stop:1 #63b3ed);
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+                border: none;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2c5282, stop:1 #3182ce);
+            }
+            QPushButton:disabled {
+                background: #a0aec0;
+            }
+        """)
+        self.btn_gen.clicked.connect(self._generate)
+        layout.addWidget(self.btn_gen)
 
-        # Right panel - previews
-        right = QFrame()
-        right_layout = QVBoxLayout(right)
-        right_layout.setContentsMargins(8, 8, 8, 8)
-        right_layout.setSpacing(8)
+        layout.addStretch()
+        return panel
 
-        # Grid layout for 4 previews
+    def _create_center_panel(self):
+        panel = QFrame()
+        panel.setStyleSheet("background-color: #e2e8f0;")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(12)
+
         grid = QHBoxLayout()
 
         col1 = QVBoxLayout()
         col2 = QVBoxLayout()
 
-        # 2D Preview
-        col1.addWidget(QLabel("2D"))
-        self.preview_2d = QLabel("--")
-        self.preview_2d.setMinimumSize(350, 350)
+        col1.addWidget(self._create_preview_label("2D Preview"))
+        self.preview_2d = QLabel("Waiting...")
+        self.preview_2d.setMinimumSize(300, 300)
         self.preview_2d.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_2d.setStyleSheet("border: 1px solid #ddd; background: #fff;")
+        self.preview_2d.setStyleSheet("""
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            background-color: #ffffff;
+            font-size: 14px;
+            color: #a0aec0;
+        """)
         col1.addWidget(self.preview_2d)
 
-        # UV
-        col1.addWidget(QLabel("UV"))
-        self.preview_uv = QLabel("--")
-        self.preview_uv.setMinimumSize(350, 350)
+        col1.addWidget(self._create_preview_label("UV Texture"))
+        self.preview_uv = QLabel("Waiting...")
+        self.preview_uv.setMinimumSize(300, 300)
         self.preview_uv.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_uv.setStyleSheet("border: 1px solid #ddd; background: #fff;")
+        self.preview_uv.setStyleSheet("""
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            background-color: #ffffff;
+            font-size: 14px;
+            color: #a0aec0;
+        """)
         col1.addWidget(self.preview_uv)
 
-        # Normal
-        col2.addWidget(QLabel("Normal"))
-        self.preview_normal = QLabel("--")
-        self.preview_normal.setMinimumSize(350, 350)
+        col2.addWidget(self._create_preview_label("Normal Map"))
+        self.preview_normal = QLabel("Waiting...")
+        self.preview_normal.setMinimumSize(300, 300)
         self.preview_normal.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_normal.setStyleSheet(
-            "border: 1px solid #ddd; background: #1a1a2e;"
-        )
+        self.preview_normal.setStyleSheet("""
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            background-color: #1a1a2e;
+            font-size: 14px;
+            color: #a0aec0;
+        """)
         col2.addWidget(self.preview_normal)
 
-        # 3D
-        col2.addWidget(QLabel("3D"))
+        col2.addWidget(self._create_preview_label("3D Model"))
         self.vtk_widget = QtInteractor(self)
         self.vtk_widget.add_axes()
-        self.vtk_widget.interactor.setMinimumSize(350, 350)
+        self.vtk_widget.interactor.setMinimumSize(300, 300)
         col2.addWidget(self.vtk_widget.interactor)
 
         grid.addLayout(col1)
         grid.addLayout(col2)
-        right_layout.addLayout(grid)
+        layout.addLayout(grid)
 
-        splitter.addWidget(right)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 2)
+        return panel
 
-        self._update_visibility()
+    def _create_preview_label(self, text):
+        label = QLabel(text)
+        label.setStyleSheet(
+            "font-weight: bold; font-size: 12px; color: #4a5568; background: transparent;"
+        )
+        return label
+
+    def _create_right_panel(self):
+        panel = QFrame()
+        panel.setStyleSheet("background-color: #f5f7fa;")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(12)
+
+        ai_group = QGroupBox("🤖 AI Assistant")
+        ai_layout = QVBoxLayout(ai_group)
+
+        self.qwen_response = QTextEdit()
+        self.qwen_response.setReadOnly(True)
+        self.qwen_response.setMinimumHeight(300)
+        self.qwen_response.setStyleSheet("""
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background-color: #ffffff;
+            font-size: 11px;
+            padding: 8px;
+        """)
+        self.qwen_response.setPlaceholderText("AI analysis results will appear here...")
+        ai_layout.addWidget(self.qwen_response)
+
+        layout.addWidget(ai_group)
+
+        smart_group = QGroupBox("Smart Input")
+        smart_layout = QVBoxLayout(smart_group)
+
+        self.lbl_smart_img = QLabel("📷 Input Image")
+        smart_layout.addWidget(self.lbl_smart_img)
+
+        self.smart_img_preview = QLabel("Click to select")
+        self.smart_img_preview.setMinimumHeight(150)
+        self.smart_img_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.smart_img_preview.setStyleSheet("""
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            background-color: #edf2f7;
+            font-size: 12px;
+            color: #718096;
+        """)
+        self.smart_img_preview.mousePressEvent = lambda e: self._select_smart_img()
+        smart_layout.addWidget(self.smart_img_preview)
+
+        self.lbl_smart_input = QLabel("🧠 Natural Language (Optional)")
+        smart_layout.addWidget(self.lbl_smart_input)
+
+        self.smart_input = QTextEdit()
+        self.smart_input.setPlaceholderText(
+            "可不输入，AI将自动分析\n输入: 把材质改成金属"
+        )
+        self.smart_input.setMaximumHeight(60)
+        smart_layout.addWidget(self.smart_input)
+
+        layout.addWidget(smart_group)
+
+        status_group = QGroupBox("Progress")
+        status_layout = QVBoxLayout(status_group)
+
+        self.ai_progress = QProgressBar()
+        self.ai_progress.setMinimumHeight(24)
+        status_layout.addWidget(self.ai_progress)
+
+        self.ai_status = QLabel("Ready")
+        self.ai_status.setStyleSheet("font-size: 11px; color: #718096;")
+        status_layout.addWidget(self.ai_status)
+
+        layout.addWidget(status_group)
+
+        self.btn_smart_gen = QPushButton("🚀 Generate")
+        self.btn_smart_gen.setMinimumHeight(48)
+        self.btn_smart_gen.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #48bb78, stop:1 #68d391);
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+                border: none;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #38a169, stop:1 #48bb78);
+            }
+            QPushButton:disabled {
+                background: #a0aec0;
+            }
+        """)
+        self.btn_smart_gen.clicked.connect(self._generate)
+        layout.addWidget(self.btn_smart_gen)
+
+        layout.addStretch()
+        return panel
 
     def _update_visibility(self):
         mode, _ = self._get_mode()
         is_smart = self.rb_smart.isChecked()
 
-        # Smart mode controls
-        self.lbl_smart_input.setVisible(is_smart)
-        self.smart_input.setVisible(is_smart)
-        self.lbl_smart_img.setVisible(is_smart)
-        self.smart_img_preview.setVisible(is_smart)
-        self.btn_smart_img.setVisible(is_smart)
-        self.lbl_qwen.setVisible(is_smart)
-        self.qwen_response.setVisible(is_smart)
+        self.qwen_response.parent().parent().setVisible(is_smart)
+        self.smart_img_preview.parent().parent().setVisible(is_smart)
+        self.ai_progress.parent().parent().setVisible(is_smart)
+        self.btn_smart_gen.setVisible(is_smart)
 
-        # Traditional mode controls
         show_prompt = "Image to 3D" not in mode and not is_smart
         show_img1 = "Image to 3D" in mode or "Dual" in mode
         show_img2 = "Dual" in mode
@@ -343,11 +583,13 @@ class MainWindow(QMainWindow):
 
         self.lbl_img1.setVisible(show_img1)
         self.img1_preview.setVisible(show_img1)
-        self.btn_img1.setVisible(show_img1)
 
         self.lbl_img2.setVisible(show_img2)
         self.img2_preview.setVisible(show_img2)
-        self.btn_img2.setVisible(show_img2)
+
+        self.progress.parent().parent().setVisible(not is_smart)
+        self.status.parent().parent().setVisible(not is_smart)
+        self.btn_gen.setVisible(not is_smart)
 
     def _get_mode(self):
         if self.rb_smart.isChecked():
@@ -407,34 +649,30 @@ class MainWindow(QMainWindow):
     def _generate(self):
         mode, quality = self._get_mode()
 
-        # Smart Mode
         if mode == "Smart":
             if not self.smart_img_path:
                 QMessageBox.warning(self, "Error", "Please select an image")
                 return
 
             user_input = self.smart_input.toPlainText().strip()
-            # 提示词可以为空，AI将自动分析
 
-            self.btn_gen.setEnabled(False)
-            self.btn_gen.setText("Generating...")
-            self.progress.setValue(0)
-            self.status.setText("Starting Smart Mode...")
+            self.btn_smart_gen.setEnabled(False)
+            self.btn_smart_gen.setText("Generating...")
+            self.ai_progress.setValue(0)
+            self.ai_status.setText("Starting...")
             self.qwen_response.clear()
 
             self.smart_worker = SmartWorker(user_input, self.smart_img_path, quality)
-            self.smart_worker.progress.connect(self._on_progress)
+            self.smart_worker.progress.connect(self._on_ai_progress)
             self.smart_worker.qwen_message.connect(self._on_qwen_message)
             self.smart_worker.intermediate.connect(self._on_intermediate)
             self.smart_worker.done.connect(self._on_smart_done)
-            self.smart_worker.err.connect(self._on_error)
+            self.smart_worker.err.connect(self._on_ai_error)
             self.smart_worker.start()
             return
 
-        # Traditional modes
         prompt = self.prompt_input.toPlainText().strip()
 
-        # Validation
         if "Text to 3D" in mode and not prompt:
             QMessageBox.warning(self, "Error", "Prompt required")
             return
@@ -468,6 +706,10 @@ class MainWindow(QMainWindow):
         self.progress.setValue(int(val * 100))
         self.status.setText(desc)
 
+    def _on_ai_progress(self, val, desc):
+        self.ai_progress.setValue(int(val * 100))
+        self.ai_status.setText(desc)
+
     def _on_qwen_message(self, msg):
         import json
 
@@ -495,7 +737,6 @@ class MainWindow(QMainWindow):
 
             self.qwen_response.append(f"{prefix} {content}")
 
-            # 处理预览图更新
             if type_ == "PREVIEW_2D" and content and os.path.exists(content):
                 px = QPixmap(content).scaled(
                     self.preview_2d.size(),
@@ -558,7 +799,7 @@ class MainWindow(QMainWindow):
 
     def _on_done(self, img2d, normal, uv, model):
         self.btn_gen.setEnabled(True)
-        self.btn_gen.setText("Generate")
+        self.btn_gen.setText("🚀 Generate")
         self.status.setText("Done")
 
         if img2d and os.path.exists(img2d):
@@ -589,22 +830,31 @@ class MainWindow(QMainWindow):
             self._load_model(self.vtk_widget, model)
 
     def _on_smart_done(self, model_path):
-        self.btn_gen.setEnabled(True)
-        self.btn_gen.setText("Generate")
-        self.progress.setValue(100)
-        self.status.setText("Done")
+        self.btn_smart_gen.setEnabled(True)
+        self.btn_smart_gen.setText("🚀 Generate")
+        self.ai_progress.setValue(100)
+        self.ai_status.setText("Done")
 
         if model_path and os.path.exists(model_path):
-            self.qwen_response.append(f"🎉 3D模型生成完成: {model_path}")
+            self.qwen_response.append(f"🎉 3D模型生成完成")
             self._load_model(self.vtk_widget, model_path)
         else:
             self.qwen_response.append("⚠️ 未生成模型文件")
 
     def _on_error(self, msg):
         self.btn_gen.setEnabled(True)
-        self.btn_gen.setText("Generate")
+        self.btn_gen.setText("🚀 Generate")
         self.progress.setValue(0)
         self.status.setText("Error")
+        self.status.setStyleSheet("font-size: 11px; color: #e53e3e;")
+        QMessageBox.critical(self, "Error", msg)
+
+    def _on_ai_error(self, msg):
+        self.btn_smart_gen.setEnabled(True)
+        self.btn_smart_gen.setText("🚀 Generate")
+        self.ai_progress.setValue(0)
+        self.ai_status.setText("Error")
+        self.ai_status.setStyleSheet("font-size: 11px; color: #e53e3e;")
         QMessageBox.critical(self, "Error", msg)
 
     def _load_model(self, widget, path):
@@ -668,26 +918,41 @@ class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Settings")
-        self.setMinimumSize(400, 200)
+        self.setMinimumSize(400, 220)
+        self.setStyleSheet(STYLESHEET)
 
         layout = QVBoxLayout(self)
+        layout.setSpacing(12)
 
-        # API Key
-        layout.addWidget(QLabel("DashScope API Key"))
+        api_group = QGroupBox("API Configuration")
+        api_layout = QVBoxLayout(api_group)
+
+        api_layout.addWidget(QLabel("DashScope API Key"))
         self.api_key_input = QLineEdit()
         self.api_key_input.setPlaceholderText("sk-xxxxxxxxxxxxxxxx")
         self.api_key_input.setText(self._load_api_key())
-        layout.addWidget(self.api_key_input)
+        api_layout.addWidget(self.api_key_input)
 
-        # Model
-        layout.addWidget(QLabel("Qwen Model"))
+        api_layout.addWidget(QLabel("Qwen Model"))
         self.model_input = QLineEdit()
         self.model_input.setText(self._load_model())
-        layout.addWidget(self.model_input)
+        api_layout.addWidget(self.model_input)
 
-        # Buttons
+        layout.addWidget(api_group)
+
         btn_layout = QHBoxLayout()
         btn_save = QPushButton("Save")
+        btn_save.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #48bb78, stop:1 #68d391);
+                color: white;
+                font-weight: bold;
+                border: none;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #38a169, stop:1 #48bb78);
+            }
+        """)
         btn_save.clicked.connect(self._save)
         btn_cancel = QPushButton("Cancel")
         btn_cancel.clicked.connect(self.reject)
@@ -729,6 +994,7 @@ class LogWindow(QMainWindow):
         super().__init__(parent)
         self.setWindowTitle("Log")
         self.setMinimumSize(800, 600)
+        self.setStyleSheet(STYLESHEET)
 
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
