@@ -41,7 +41,7 @@ def get_config_paths():
 COMFYUI_PATH, INSTALL_DIR = get_config_paths()
 COMFYUI_PORT = 8188
 COMFYUI_START_CMD = os.path.join(COMFYUI_PATH, "..", "run_nvidia_gpu.bat")
-GUI_SCRIPT = os.path.join(INSTALL_DIR, "backend", "python_embeded", "python.exe")
+GUI_SCRIPT = os.path.join(INSTALL_DIR, ".venv", "Scripts", "python.exe")
 GUI_ARGS = [os.path.join(INSTALL_DIR, "frontend", "gui.py")]
 
 
