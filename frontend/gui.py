@@ -433,7 +433,7 @@ class MainWindow(QMainWindow):
 
         col1.addWidget(self._create_preview_label("2D Preview"))
         self.preview_2d = QLabel("Waiting...")
-        self.preview_2d.setMinimumSize(200, 200)
+        self.preview_2d.setFixedSize(280, 280)
         self.preview_2d.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_2d.setStyleSheet("""
             border: 1px solid #cbd5e0;
@@ -442,11 +442,11 @@ class MainWindow(QMainWindow):
             font-size: 14px;
             color: #a0aec0;
         """)
-        col1.addWidget(self.preview_2d)
+        col1.addWidget(self.preview_2d, alignment=Qt.AlignmentFlag.AlignCenter)
 
         col1.addWidget(self._create_preview_label("UV Texture"))
         self.preview_uv = QLabel("Waiting...")
-        self.preview_uv.setMinimumSize(200, 200)
+        self.preview_uv.setFixedSize(280, 280)
         self.preview_uv.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_uv.setStyleSheet("""
             border: 1px solid #cbd5e0;
@@ -455,11 +455,11 @@ class MainWindow(QMainWindow):
             font-size: 14px;
             color: #a0aec0;
         """)
-        col1.addWidget(self.preview_uv)
+        col1.addWidget(self.preview_uv, alignment=Qt.AlignmentFlag.AlignCenter)
 
         col2.addWidget(self._create_preview_label("Normal Map"))
         self.preview_normal = QLabel("Waiting...")
-        self.preview_normal.setMinimumSize(200, 200)
+        self.preview_normal.setFixedSize(280, 280)
         self.preview_normal.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_normal.setStyleSheet("""
             border: 1px solid #cbd5e0;
@@ -468,13 +468,15 @@ class MainWindow(QMainWindow):
             font-size: 14px;
             color: #a0aec0;
         """)
-        col2.addWidget(self.preview_normal)
+        col2.addWidget(self.preview_normal, alignment=Qt.AlignmentFlag.AlignCenter)
 
         col2.addWidget(self._create_preview_label("3D Model"))
         self.vtk_widget = QtInteractor(self)
         self.vtk_widget.add_axes()
-        self.vtk_widget.interactor.setMinimumSize(200, 200)
-        col2.addWidget(self.vtk_widget.interactor)
+        self.vtk_widget.interactor.setFixedSize(280, 280)
+        col2.addWidget(
+            self.vtk_widget.interactor, alignment=Qt.AlignmentFlag.AlignCenter
+        )
 
         grid.addLayout(col1)
         grid.addLayout(col2)
