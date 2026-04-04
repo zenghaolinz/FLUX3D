@@ -35,7 +35,7 @@ from api_client import run_comfyui_pipeline
 from agent_core import run_smart_agent
 
 # ==========================================
-# Resource Configuration
+# 资源配置
 # ==========================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ICONS_DIR = os.path.join(BASE_DIR, "assets", "icons")
@@ -46,7 +46,7 @@ def get_icon(filename):
 
 
 # ==========================================
-# Professional Dark Theme
+# 专业深色主题
 # ==========================================
 STYLESHEET = """
 QMainWindow, QDialog {
@@ -239,7 +239,7 @@ class Worker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("3D Asset Generator")
+        self.setWindowTitle("3D资产生成器")
         self.setMinimumSize(1400, 850)
         self.setStyleSheet(STYLESHEET)
 
@@ -284,7 +284,7 @@ class MainWindow(QMainWindow):
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(16, 8, 16, 8)
 
-        title = QLabel("3D Asset Generator")
+        title = QLabel("3D资产生成器")
         title.setStyleSheet("font-size: 14px; font-weight: 600; color: #ffffff;")
         header_layout.addWidget(title)
 
@@ -293,12 +293,12 @@ class MainWindow(QMainWindow):
         header_layout.addWidget(version)
         header_layout.addStretch()
 
-        self.btn_settings = QPushButton(" Settings")
+        self.btn_settings = QPushButton(" 设置")
         self.btn_settings.setIcon(QIcon(get_icon("settings.png")))
         self.btn_settings.clicked.connect(self._show_settings)
         header_layout.addWidget(self.btn_settings)
 
-        self.btn_log = QPushButton(" Console")
+        self.btn_log = QPushButton(" 控制台")
         self.btn_log.setIcon(QIcon(get_icon("console.png")))
         self.btn_log.clicked.connect(self._show_log)
         header_layout.addWidget(self.btn_log)
@@ -311,16 +311,16 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 4, 0)
         layout.setSpacing(8)
 
-        # 1. Pipeline Mode Group (Unified)
-        mode_group = QGroupBox("Pipeline Mode")
+        # 1. 管线模式组
+        mode_group = QGroupBox("管线模式")
         mode_layout = QVBoxLayout(mode_group)
         mode_layout.setSpacing(8)
 
         self.mode_group = QButtonGroup()
-        self.rb_smart = QRadioButton("Auto-Compute (API)")
-        self.rb_text2img = QRadioButton("Text -> Image -> 3D (Local)")
-        self.rb_img2model = QRadioButton("Image -> 3D (Local)")
-        self.rb_dual = QRadioButton("Dual Fusion (Local)")
+        self.rb_smart = QRadioButton("智能计算 (云端API)")
+        self.rb_text2img = QRadioButton("文本 -> 图像 -> 3D (本地)")
+        self.rb_img2model = QRadioButton("图像 -> 3D (本地)")
+        self.rb_dual = QRadioButton("双图融合 (本地)")
         self.rb_smart.setChecked(True)
 
         for rb in [self.rb_smart, self.rb_text2img, self.rb_img2model, self.rb_dual]:
@@ -330,12 +330,12 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(mode_group)
 
-        # 2. Quality Group
-        quality_group = QGroupBox("Render Quality")
+        # 2. 渲染质量组
+        quality_group = QGroupBox("渲染质量")
         quality_layout = QHBoxLayout(quality_group)
         self.quality_group = QButtonGroup()
-        self.rb_fast = QRadioButton("Draft (4B)")
-        self.rb_quality = QRadioButton("Production (9B)")
+        self.rb_fast = QRadioButton("草稿 (4B)")
+        self.rb_quality = QRadioButton("成品 (9B)")
         self.rb_fast.setChecked(True)
         self.quality_group.addButton(self.rb_fast)
         self.quality_group.addButton(self.rb_quality)
@@ -343,8 +343,8 @@ class MainWindow(QMainWindow):
         quality_layout.addWidget(self.rb_quality)
         layout.addWidget(quality_group)
 
-        # 3. Traditional Inputs Group
-        self.input_group = QGroupBox("Local Pipeline Inputs")
+        # 3. 本地管线输入组
+        self.input_group = QGroupBox("本地管线输入")
         input_layout = QVBoxLayout(self.input_group)
         input_layout.setSpacing(8)
 
@@ -352,8 +352,8 @@ class MainWindow(QMainWindow):
             "border: 1px dashed #555555; background-color: #1e1e1e; color: #888888;"
         )
 
-        self.lbl_img1 = QLabel("Base Image")
-        self.img1_preview = QLabel("Click to load image")
+        self.lbl_img1 = QLabel("基础图像")
+        self.img1_preview = QLabel("点击加载图像")
         self.img1_preview.setMinimumHeight(100)
         self.img1_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.img1_preview.setStyleSheet(placeholder_style)
@@ -361,8 +361,8 @@ class MainWindow(QMainWindow):
         input_layout.addWidget(self.lbl_img1)
         input_layout.addWidget(self.img1_preview)
 
-        self.lbl_img2 = QLabel("Reference Image")
-        self.img2_preview = QLabel("Click to load image")
+        self.lbl_img2 = QLabel("参考图像")
+        self.img2_preview = QLabel("点击加载图像")
         self.img2_preview.setMinimumHeight(100)
         self.img2_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.img2_preview.setStyleSheet(placeholder_style)
@@ -370,29 +370,29 @@ class MainWindow(QMainWindow):
         input_layout.addWidget(self.lbl_img2)
         input_layout.addWidget(self.img2_preview)
 
-        self.lbl_prompt = QLabel("Text Prompt")
+        self.lbl_prompt = QLabel("文本提示词")
         self.prompt_input = QTextEdit()
-        self.prompt_input.setPlaceholderText("Enter descriptive prompt...")
+        self.prompt_input.setPlaceholderText("输入描述性提示词...")
         self.prompt_input.setMaximumHeight(60)
         input_layout.addWidget(self.lbl_prompt)
         input_layout.addWidget(self.prompt_input)
 
         layout.addWidget(self.input_group)
 
-        # 4. Traditional Status Group
-        self.status_group = QGroupBox("Process")
+        # 4. 处理状态组
+        self.status_group = QGroupBox("处理状态")
         status_layout = QVBoxLayout(self.status_group)
         self.progress = QProgressBar()
         self.progress.setMinimumHeight(12)
         self.progress.setTextVisible(False)
         status_layout.addWidget(self.progress)
-        self.status = QLabel("Idle")
+        self.status = QLabel("空闲")
         self.status.setStyleSheet("color: #999999;")
         status_layout.addWidget(self.status)
         layout.addWidget(self.status_group)
 
-        # 5. Traditional Execute Button
-        self.btn_gen = QPushButton(" Execute Local Pipeline")
+        # 5. 执行按钮
+        self.btn_gen = QPushButton(" 执行本地管线")
         self.btn_gen.setObjectName("primaryAction")
         self.btn_gen.setIcon(QIcon(get_icon("play.png")))
         self.btn_gen.setMinimumHeight(36)
@@ -417,28 +417,28 @@ class MainWindow(QMainWindow):
             "border: 1px solid #3c3c3c; background-color: #1e1e1e; color: #555555;"
         )
 
-        col1.addWidget(self._create_preview_label("2D Viewer", "view_2d.png"))
-        self.preview_2d = QLabel("No Data")
+        col1.addWidget(self._create_preview_label("2D 预览", "view_2d.png"))
+        self.preview_2d = QLabel("无数据")
         self.preview_2d.setFixedSize(320, 320)
         self.preview_2d.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_2d.setStyleSheet(preview_box_style)
         col1.addWidget(self.preview_2d, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        col1.addWidget(self._create_preview_label("UV Map", "view_uv.png"))
-        self.preview_uv = QLabel("No Data")
+        col1.addWidget(self._create_preview_label("UV 贴图", "view_uv.png"))
+        self.preview_uv = QLabel("无数据")
         self.preview_uv.setFixedSize(320, 320)
         self.preview_uv.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_uv.setStyleSheet(preview_box_style)
         col1.addWidget(self.preview_uv, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        col2.addWidget(self._create_preview_label("Normal Map", "view_normal.png"))
-        self.preview_normal = QLabel("No Data")
+        col2.addWidget(self._create_preview_label("法线贴图", "view_normal.png"))
+        self.preview_normal = QLabel("无数据")
         self.preview_normal.setFixedSize(320, 320)
         self.preview_normal.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_normal.setStyleSheet(preview_box_style)
         col2.addWidget(self.preview_normal, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        col2.addWidget(self._create_preview_label("3D Viewport", "view_3d.png"))
+        col2.addWidget(self._create_preview_label("3D 视窗", "view_3d.png"))
         self.vtk_container = QFrame()
         self.vtk_container.setFixedSize(320, 320)
         self.vtk_container.setStyleSheet(
@@ -482,7 +482,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(4, 0, 0, 0)
         layout.setSpacing(8)
 
-        ai_group = QGroupBox("Console Output")
+        ai_group = QGroupBox("控制台输出")
         ai_layout = QVBoxLayout(ai_group)
         self.qwen_response = QTextEdit()
         self.qwen_response.setReadOnly(True)
@@ -490,17 +490,17 @@ class MainWindow(QMainWindow):
         self.qwen_response.setStyleSheet(
             "font-family: Consolas, monospace; font-size: 11px;"
         )
-        self.qwen_response.setPlaceholderText("Waiting for process initialization...")
+        self.qwen_response.setPlaceholderText("等待处理初始化...")
         ai_layout.addWidget(self.qwen_response)
         layout.addWidget(ai_group)
 
-        smart_group = QGroupBox("API Source Asset")
+        smart_group = QGroupBox("API源资产")
         smart_layout = QVBoxLayout(smart_group)
 
-        self.lbl_smart_img = QLabel("Input Image")
+        self.lbl_smart_img = QLabel("输入图像")
         smart_layout.addWidget(self.lbl_smart_img)
 
-        self.smart_img_preview = QLabel("Click to load image")
+        self.smart_img_preview = QLabel("点击加载图像")
         self.smart_img_preview.setMinimumHeight(120)
         self.smart_img_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.smart_img_preview.setStyleSheet(
@@ -509,27 +509,27 @@ class MainWindow(QMainWindow):
         self.smart_img_preview.mousePressEvent = lambda e: self._select_smart_img()
         smart_layout.addWidget(self.smart_img_preview)
 
-        self.lbl_smart_input = QLabel("Instruction override (Optional)")
+        self.lbl_smart_input = QLabel("指令覆盖 (可选)")
         smart_layout.addWidget(self.lbl_smart_input)
 
         self.smart_input = QTextEdit()
-        self.smart_input.setPlaceholderText("e.g. Apply rusted metal material")
+        self.smart_input.setPlaceholderText("例如: 应用生锈金属材质")
         self.smart_input.setMaximumHeight(60)
         smart_layout.addWidget(self.smart_input)
         layout.addWidget(smart_group)
 
-        status_group = QGroupBox("Task Status")
+        status_group = QGroupBox("任务状态")
         status_layout = QVBoxLayout(status_group)
         self.ai_progress = QProgressBar()
         self.ai_progress.setMinimumHeight(12)
         self.ai_progress.setTextVisible(False)
         status_layout.addWidget(self.ai_progress)
-        self.ai_status = QLabel("Idle")
+        self.ai_status = QLabel("空闲")
         self.ai_status.setStyleSheet("color: #999999;")
         status_layout.addWidget(self.ai_status)
         layout.addWidget(status_group)
 
-        self.btn_smart_gen = QPushButton(" Compute via API")
+        self.btn_smart_gen = QPushButton(" 云端计算")
         self.btn_smart_gen.setObjectName("primaryAction")
         self.btn_smart_gen.setIcon(QIcon(get_icon("play.png")))
         self.btn_smart_gen.setMinimumHeight(36)
@@ -543,7 +543,6 @@ class MainWindow(QMainWindow):
         mode = self._get_mode()
         is_smart = mode == "Smart"
 
-        # Toggle Panel visibility entirely for clarity
         self.right_panel.setVisible(is_smart)
 
         self.input_group.setVisible(not is_smart)
@@ -573,7 +572,7 @@ class MainWindow(QMainWindow):
 
     def _select_img1(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Import Base Image", "", "Images (*.png *.jpg *.jpeg *.bmp *.webp)"
+            self, "选择基础图像", "", "图像文件 (*.png *.jpg *.jpeg *.bmp *.webp)"
         )
         if path:
             self.img1_path = path
@@ -589,10 +588,7 @@ class MainWindow(QMainWindow):
 
     def _select_img2(self):
         path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Import Reference Image",
-            "",
-            "Images (*.png *.jpg *.jpeg *.bmp *.webp)",
+            self, "选择参考图像", "", "图像文件 (*.png *.jpg *.jpeg *.bmp *.webp)"
         )
         if path:
             self.img2_path = path
@@ -608,7 +604,7 @@ class MainWindow(QMainWindow):
 
     def _select_smart_img(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Import Asset", "", "Images (*.png *.jpg *.jpeg *.bmp *.webp)"
+            self, "选择资产", "", "图像文件 (*.png *.jpg *.jpeg *.bmp *.webp)"
         )
         if path:
             self.smart_img_path = path
@@ -626,19 +622,16 @@ class MainWindow(QMainWindow):
         mode = self._get_mode()
         quality = "quality" if self.rb_quality.isChecked() else "fast"
 
-        # ----------------------
-        # Smart Agent API Mode
-        # ----------------------
         if mode == "Smart":
             if not self.smart_img_path:
-                QMessageBox.warning(self, "Warning", "Source image is required.")
+                QMessageBox.warning(self, "警告", "请选择源图像。")
                 return
 
             user_input = self.smart_input.toPlainText().strip()
             self.btn_smart_gen.setEnabled(False)
-            self.btn_smart_gen.setText(" Processing...")
+            self.btn_smart_gen.setText(" 处理中...")
             self.ai_progress.setValue(0)
-            self.ai_status.setText("Initializing...")
+            self.ai_status.setText("初始化...")
             self.qwen_response.clear()
 
             self.smart_worker = SmartWorker(user_input, self.smart_img_path, quality)
@@ -650,31 +643,26 @@ class MainWindow(QMainWindow):
             self.smart_worker.start()
             return
 
-        # ----------------------
-        # Traditional Local Mode
-        # ----------------------
         prompt = self.prompt_input.toPlainText().strip()
 
         if mode == "Text to 3D" and not prompt:
-            QMessageBox.warning(self, "Warning", "Text prompt is required.")
+            QMessageBox.warning(self, "警告", "请输入文本提示词。")
             return
         if mode == "Image to 3D" and not self.img1_path:
-            QMessageBox.warning(self, "Warning", "Base image is required.")
+            QMessageBox.warning(self, "警告", "请选择基础图像。")
             return
         if mode == "Dual Image Fusion":
             if not prompt:
-                QMessageBox.warning(self, "Warning", "Text prompt is required.")
+                QMessageBox.warning(self, "警告", "请输入文本提示词。")
                 return
             if not self.img1_path or not self.img2_path:
-                QMessageBox.warning(
-                    self, "Warning", "Both base and reference images are required."
-                )
+                QMessageBox.warning(self, "警告", "请选择基础图像和参考图像。")
                 return
 
         self.btn_gen.setEnabled(False)
-        self.btn_gen.setText(" Executing...")
+        self.btn_gen.setText(" 执行中...")
         self.progress.setValue(0)
-        self.status.setText(f"Initializing {mode} pipeline...")
+        self.status.setText(f"初始化 {mode} 管线...")
 
         self.worker = Worker(mode, quality, prompt, self.img1_path, self.img2_path)
         self.worker.progress.connect(self._on_progress)
@@ -719,8 +707,26 @@ class MainWindow(QMainWindow):
             }
             color = color_map.get(type_, "#cccccc")
 
+            type_map = {
+                "INFO": "信息",
+                "ANALYSIS": "分析",
+                "DECISION": "决策",
+                "SUCCESS": "成功",
+                "WARNING": "警告",
+                "ERROR": "错误",
+                "PREVIEW_2D": "2D预览",
+                "PREVIEW_NORMAL": "法线",
+                "PREVIEW_UV": "UV",
+                "MODEL_READY": "模型就绪",
+                "TOOL_CALL": "工具调用",
+                "TOOL_RESULT": "工具结果",
+                "THINKING": "思考中",
+                "DONE": "完成",
+            }
+            type_text = type_map.get(type_, type_)
+
             self.qwen_response.append(
-                f"<span style='color:#666666;'>[{timestamp}]</span> <span style='color:{color};'>[{type_}]</span> <span style='color:#cccccc;'>{content}</span>"
+                f"<span style='color:#666666;'>[{timestamp}]</span> <span style='color:{color};'>[{type_text}]</span> <span style='color:#cccccc;'>{content}</span>"
             )
 
             if type_ == "PREVIEW_2D" and content and os.path.exists(content):
@@ -759,8 +765,8 @@ class MainWindow(QMainWindow):
 
     def _on_done(self, img2d, normal, uv, model):
         self.btn_gen.setEnabled(True)
-        self.btn_gen.setText(" Execute Local Pipeline")
-        self.status.setText("Process Completed")
+        self.btn_gen.setText(" 执行本地管线")
+        self.status.setText("处理完成")
         if img2d and os.path.exists(img2d):
             self._update_preview_image(self.preview_2d, img2d)
         if normal and os.path.exists(normal):
@@ -772,27 +778,27 @@ class MainWindow(QMainWindow):
 
     def _on_smart_done(self, model_path):
         self.btn_smart_gen.setEnabled(True)
-        self.btn_smart_gen.setText(" Compute via API")
+        self.btn_smart_gen.setText(" 云端计算")
         self.ai_progress.setValue(100)
-        self.ai_status.setText("Process Completed")
+        self.ai_status.setText("处理完成")
         if model_path and os.path.exists(model_path):
             self._load_model(self.vtk_widget, model_path)
 
     def _on_error(self, msg):
         self.btn_gen.setEnabled(True)
-        self.btn_gen.setText(" Execute Local Pipeline")
+        self.btn_gen.setText(" 执行本地管线")
         self.progress.setValue(0)
-        self.status.setText("Process Failed")
+        self.status.setText("处理失败")
         self.status.setStyleSheet("color: #f44336;")
-        QMessageBox.critical(self, "Execution Error", msg)
+        QMessageBox.critical(self, "执行错误", msg)
 
     def _on_ai_error(self, msg):
         self.btn_smart_gen.setEnabled(True)
-        self.btn_smart_gen.setText(" Compute via API")
+        self.btn_smart_gen.setText(" 云端计算")
         self.ai_progress.setValue(0)
-        self.ai_status.setText("Process Failed")
+        self.ai_status.setText("处理失败")
         self.ai_status.setStyleSheet("color: #f44336;")
-        QMessageBox.critical(self, "Execution Error", msg)
+        QMessageBox.critical(self, "执行错误", msg)
 
     def _load_model(self, widget, path):
         try:
@@ -851,23 +857,23 @@ class SettingsDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Preferences")
+        self.setWindowTitle("首选项")
         self.setMinimumSize(400, 220)
         self.setStyleSheet(STYLESHEET)
 
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
 
-        api_group = QGroupBox("API Configuration")
+        api_group = QGroupBox("API 配置")
         api_layout = QVBoxLayout(api_group)
 
-        api_layout.addWidget(QLabel("DashScope API Key"))
+        api_layout.addWidget(QLabel("DashScope API 密钥"))
         self.api_key_input = QLineEdit()
         self.api_key_input.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
         self.api_key_input.setText(self._load_api_key())
         api_layout.addWidget(self.api_key_input)
 
-        api_layout.addWidget(QLabel("Language Model"))
+        api_layout.addWidget(QLabel("语言模型"))
         self.model_input = QLineEdit()
         self.model_input.setText(self._load_model())
         api_layout.addWidget(self.model_input)
@@ -875,10 +881,10 @@ class SettingsDialog(QDialog):
         layout.addWidget(api_group)
 
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("Apply")
+        btn_save = QPushButton("应用")
         btn_save.setObjectName("primaryAction")
         btn_save.clicked.connect(self._save)
-        btn_cancel = QPushButton("Cancel")
+        btn_cancel = QPushButton("取消")
         btn_cancel.clicked.connect(self.reject)
         btn_layout.addStretch()
         btn_layout.addWidget(btn_cancel)
@@ -912,7 +918,7 @@ class LogWindow(QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("System Console")
+        self.setWindowTitle("系统控制台")
         self.setMinimumSize(800, 600)
         self.setStyleSheet(STYLESHEET)
 
@@ -926,7 +932,7 @@ class LogWindow(QMainWindow):
 
     def _refresh(self):
         if not os.path.exists(self.LOG_PATH):
-            self.log_text.setText("[SYSTEM] Log file not found at specified path.")
+            self.log_text.setText("[系统] 未找到指定路径的日志文件。")
             return
         with open(self.LOG_PATH, "r", encoding="utf-8", errors="ignore") as f:
             lines = f.read().splitlines()
@@ -948,8 +954,8 @@ def main():
         import traceback
 
         traceback.print_exc()
-        print(f"\n[Fatal Error] {e}")
-        input("Press Enter to terminate...")
+        print(f"\n[致命错误] {e}")
+        input("按回车键退出...")
 
 
 if __name__ == "__main__":
