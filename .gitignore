@@ -11,10 +11,7 @@ backend/python_embeded/
 backend/__pycache__/
 
 # Installer build files
-installer/AI3DModeling_Final_Setup.zip
-installer/dist/
-installer/final/
-installer/build/
+installer/
 build/
 *.spec
 
@@ -25,3 +22,9 @@ nul
 
 # Demo outputs
 demo/**/*.glb
+
+# Distribution
+dist/
+
+# Sensitive config (contains API key)
+config.ini
