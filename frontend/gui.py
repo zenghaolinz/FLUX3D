@@ -308,6 +308,23 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(mode_group)
 
+        api_group = QGroupBox("API Mode")
+        api_layout = QVBoxLayout(api_group)
+        api_layout.setSpacing(4)
+
+        self.api_mode_group = QButtonGroup()
+        self.rb_api_on = QRadioButton("🤖 Smart (Use API)")
+        self.rb_api_off = QRadioButton("📦 Classic (No API)")
+        self.rb_api_on.setChecked(True)
+        self.api_mode_group.addButton(self.rb_api_on)
+        self.api_mode_group.addButton(self.rb_api_off)
+        api_layout.addWidget(self.rb_api_on)
+        api_layout.addWidget(self.rb_api_off)
+        self.rb_api_on.toggled.connect(self._update_visibility)
+        self.rb_api_off.toggled.connect(self._update_visibility)
+
+        layout.addWidget(api_group)
+
         quality_group = QGroupBox("Quality")
         quality_layout = QHBoxLayout(quality_group)
         self.quality_group = QButtonGroup()
@@ -416,7 +433,7 @@ class MainWindow(QMainWindow):
 
         col1.addWidget(self._create_preview_label("2D Preview"))
         self.preview_2d = QLabel("Waiting...")
-        self.preview_2d.setMinimumSize(300, 300)
+        self.preview_2d.setMinimumSize(200, 200)
         self.preview_2d.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_2d.setStyleSheet("""
             border: 1px solid #cbd5e0;
@@ -429,7 +446,7 @@ class MainWindow(QMainWindow):
 
         col1.addWidget(self._create_preview_label("UV Texture"))
         self.preview_uv = QLabel("Waiting...")
-        self.preview_uv.setMinimumSize(300, 300)
+        self.preview_uv.setMinimumSize(200, 200)
         self.preview_uv.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_uv.setStyleSheet("""
             border: 1px solid #cbd5e0;
@@ -442,7 +459,7 @@ class MainWindow(QMainWindow):
 
         col2.addWidget(self._create_preview_label("Normal Map"))
         self.preview_normal = QLabel("Waiting...")
-        self.preview_normal.setMinimumSize(300, 300)
+        self.preview_normal.setMinimumSize(200, 200)
         self.preview_normal.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_normal.setStyleSheet("""
             border: 1px solid #cbd5e0;
@@ -456,7 +473,7 @@ class MainWindow(QMainWindow):
         col2.addWidget(self._create_preview_label("3D Model"))
         self.vtk_widget = QtInteractor(self)
         self.vtk_widget.add_axes()
-        self.vtk_widget.interactor.setMinimumSize(300, 300)
+        self.vtk_widget.interactor.setMinimumSize(200, 200)
         col2.addWidget(self.vtk_widget.interactor)
 
         grid.addLayout(col1)
@@ -566,16 +583,19 @@ class MainWindow(QMainWindow):
         return panel
 
     def _update_visibility(self):
-        mode, _ = self._get_mode()
+        mode, _, _ = self._get_mode()
         is_smart = self.rb_smart.isChecked()
+        use_api = self.rb_api_on.isChecked()
 
-        self.qwen_response.parent().parent().setVisible(is_smart)
-        self.smart_img_preview.parent().parent().setVisible(is_smart)
-        self.ai_progress.parent().parent().setVisible(is_smart)
-        self.btn_smart_gen.setVisible(is_smart)
+        self.qwen_response.parent().parent().setVisible(is_smart and use_api)
+        self.smart_img_preview.parent().parent().setVisible(is_smart and use_api)
+        self.ai_progress.parent().parent().setVisible(is_smart and use_api)
+        self.btn_smart_gen.setVisible(is_smart and use_api)
 
         show_prompt = "Image to 3D" not in mode and not is_smart
-        show_img1 = "Image to 3D" in mode or "Dual" in mode
+        show_img1 = ("Image to 3D" in mode or "Dual" in mode) or (
+            is_smart and not use_api
+        )
         show_img2 = "Dual" in mode
 
         self.lbl_prompt.setVisible(show_prompt)
@@ -587,9 +607,10 @@ class MainWindow(QMainWindow):
         self.lbl_img2.setVisible(show_img2)
         self.img2_preview.setVisible(show_img2)
 
-        self.progress.parent().parent().setVisible(not is_smart)
-        self.status.parent().parent().setVisible(not is_smart)
-        self.btn_gen.setVisible(not is_smart)
+        show_classic_controls = not is_smart or not use_api
+        self.progress.parent().parent().setVisible(show_classic_controls)
+        self.status.parent().parent().setVisible(show_classic_controls)
+        self.btn_gen.setVisible(show_classic_controls)
 
     def _get_mode(self):
         if self.rb_smart.isChecked():
@@ -602,7 +623,8 @@ class MainWindow(QMainWindow):
             mode = "Dual Image Fusion"
 
         quality = "quality" if self.rb_quality.isChecked() else "fast"
-        return mode, quality
+        use_api = self.rb_api_on.isChecked()
+        return mode, quality, use_api
 
     def _select_img1(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -647,9 +669,9 @@ class MainWindow(QMainWindow):
             self.smart_img_preview.setText("")
 
     def _generate(self):
-        mode, quality = self._get_mode()
+        mode, quality, use_api = self._get_mode()
 
-        if mode == "Smart":
+        if mode == "Smart" and use_api:
             if not self.smart_img_path:
                 QMessageBox.warning(self, "Error", "Please select an image")
                 return
@@ -690,12 +712,20 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Error", "Image 2 required")
                 return
 
+        if mode == "Smart" and not use_api:
+            if not self.img1_path:
+                QMessageBox.warning(self, "Error", "Image 1 required")
+                return
+
         self.btn_gen.setEnabled(False)
         self.btn_gen.setText("Generating...")
         self.progress.setValue(0)
         self.status.setText("Starting...")
 
-        self.worker = Worker(mode, quality, prompt, self.img1_path, self.img2_path)
+        actual_mode = "Image to 3D" if mode == "Smart" else mode
+        self.worker = Worker(
+            actual_mode, quality, prompt, self.img1_path, self.img2_path
+        )
         self.worker.progress.connect(self._on_progress)
         self.worker.intermediate.connect(self._on_intermediate)
         self.worker.done.connect(self._on_done)
